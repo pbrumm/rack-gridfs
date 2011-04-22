@@ -5,7 +5,7 @@ module Rack
   class GridFSConnectionError < StandardError ; end
 
   class GridFS
-    VERSION = "0.2.0"
+    VERSION = "0.2.1"
 
     def initialize(app, options = {})
       options = {
@@ -18,7 +18,7 @@ module Rack
       @app        = app
       @prefix     = options[:prefix].gsub(/^\//, '')
       @lookup     = options[:lookup]
-      @db         = nil
+      @db         = options[:db]
 
       @hostname, @port, @database, @username, @password = 
         options.values_at(:hostname, :port, :database, :username, :password)
@@ -38,8 +38,10 @@ module Rack
     private
       def connect!
         Timeout::timeout(5) do
-          @db = Mongo::Connection.new(@hostname, @port).db(@database)
-          @db.authenticate(@username, @password) if @username
+          if @db.nil?
+            @db = Mongo::Connection.new(@hostname, @port).db(@database)
+            @db.authenticate(@username, @password) if @username
+          end
         end
       rescue Exception => e
         raise Rack::GridFSConnectionError, "Unable to connect to the MongoDB server (#{e.to_s})"
